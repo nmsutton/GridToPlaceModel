@@ -29,7 +29,7 @@ import matplotlib.patches as patches
 #from matplotlib_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 #from matplotlib_toolkits.axes_grid1.inset_locator import mark_inset
 #from cvxopt import matrix, solvers
-from sklearn import svm, linear_model , lda, decomposition, preprocessing
+from sklearn import svm, linear_model, discriminant_analysis, decomposition, preprocessing
 #from sklearn import svm
 
 
@@ -148,7 +148,8 @@ def plotCell(In, patterns = None, env = 0, cell = None, binary = False, fig = No
 
 	if fig ==None:
 		fig = plt.figure()
-	if patterns ==None:
+	#if patterns ==None:
+	if not isinstance(patterns, np.ndarray):
 		patterns = In.input_stored
 	if ax == None:
 		ax = fig.add_subplot(ax_index[0], ax_index[1], ax_index[2])
@@ -185,7 +186,8 @@ def plotCell(In, patterns = None, env = 0, cell = None, binary = False, fig = No
 			if binary:
 				s = ax.scatter(loc[env][:,0], loc[env][:,1], c = color, faceted = False, s = size)
 			else:
-				s = ax.scatter(loc[env][:,0], loc[env][:,1], c = patterns[env][:,cell], faceted = False,cmap=cm.jet, s = size, vmin = vmin, vmax = vmax)
+				#s = ax.scatter(loc[env][:,0], loc[env][:,1], c = patterns[env][:,cell], faceted = False,cmap=cm.jet, s = size, vmin = vmin, vmax = vmax)
+				s = ax.scatter(loc[env][:,0], loc[env][:,1], c = patterns[env][:,cell], cmap=cm.jet, s = size, vmin = vmin, vmax = vmax)
 		else:
 			if binary:
 				s = ax.scatter(loc[env][:,0], loc[env][:,1], c = color, faceted = False, s = size)
@@ -1064,7 +1066,8 @@ class Network(object): # Generic network class
 		if first == None:
 			first = input_pattern.shape[-2]	
 			
-		if self.output_stored == None: #if nothing is stored
+		#if self.output_stored == None: #if nothing is stored
+		if not isinstance(self.output_stored, np.ndarray):
 			self.output_stored = np.zeros([1,1,first])
 		
 		if first >=0 :
@@ -1780,8 +1783,8 @@ class Corelations(object):
 	
 	def __init__(self, patterns_1=None, patterns_2=None, in_columns = False, env = 1):
 		
-		
-		if patterns_2 != None:
+		#if patterns_2.any() != None:
+		if isinstance(patterns_2, np.ndarray):
 			print 'patterns_2.shape Correlations init'
 			print patterns_2.shape
 		self.orig_vs_orig = None #
@@ -1795,20 +1798,22 @@ class Corelations(object):
 		if len(patterns_1.shape) == 1: #pattern
 			self.patterns_1 = patterns_1.reshape(patterns_1.shape[0], 1) #pattern, cell
 
-		if patterns_2 == None:
+		#if patterns_2.any == None:
+		if isinstance(patterns_2, np.ndarray):
 			self.patterns_2 = np.tile(self.patterns_1, (2,1,1))
 			self.one_patterns = True
 		else:
 			self.one_patterns = False
-			if len(patterns_2.shape) == 4:
-				self.patterns_2= np.swapaxes(patterns_2, 0,1).reshape(patterns_2.shape[1], patterns_2.shape[0]*patterns_2.shape[2], patterns_2.shape[-1])
-			if len(patterns_2.shape) == 3:#env, pattern, cell
-				if env:#env, pattern, cell
-					self.patterns_2 = np.tile(patterns_2.reshape(patterns_2.shape[0]*patterns_2.shape[1], patterns_2.shape[-1]), (1,1,1)) #2, env*patt, cell
-				else:#noise, pattern, cell
-					self.patterns_2 = patterns_2
-			if len(patterns_2.shape) == 2:#noise, pattern
-				self.patterns_2 = patterns_2.reshape(patterns_2.shape[0],patterns_2.shape[1],1)
+			if isinstance(patterns_2, np.ndarray):
+				if len(patterns_2.shape) == 4:
+					self.patterns_2= np.swapaxes(patterns_2, 0,1).reshape(patterns_2.shape[1], patterns_2.shape[0]*patterns_2.shape[2], patterns_2.shape[-1])
+				if len(patterns_2.shape) == 3:#env, pattern, cell
+					if env:#env, pattern, cell
+						self.patterns_2 = np.tile(patterns_2.reshape(patterns_2.shape[0]*patterns_2.shape[1], patterns_2.shape[-1]), (1,1,1)) #2, env*patt, cell
+					else:#noise, pattern, cell
+						self.patterns_2 = patterns_2
+				if len(patterns_2.shape) == 2:#noise, pattern
+					self.patterns_2 = patterns_2.reshape(patterns_2.shape[0],patterns_2.shape[1],1)
 	
 
 		if in_columns: #if data is given as columns, transpose them into rows !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! not tested with env framework
@@ -1859,7 +1864,8 @@ class Corelations(object):
 			self.p_fire_given_fire_and_distance_weighted_distance +=[None]
 			self.p_fire_given_silent_and_distance_weighted_distance +=[None]
 		print 'self.patterns_2.shape Correlations init'
-		print self.patterns_2.shape
+		if isinstance(patterns_2, np.ndarray):
+			print self.patterns_2.shape
 		
 	######### calc Methods ####################
 	def calcCor(self, noise_level = None, in_steps = False):
@@ -1968,11 +1974,13 @@ class Corelations(object):
 			print 'calc Dis matrix Cor with rounding'
 			if round_it =='fix':
 				print 'use fix bins for distances'
-				if bins == None:
+				#if bins == None:
+				if not isinstance(bins, np.ndarray):
 					print 'make fix bins'
 					bins = np.linspace(0,1.5, 20)
 				for i in range(1,bins.shape[0]): # distance are divided into evenly distributed 50 bins; first bin only contains 0 distance 
-						self.distance_matrix[(self.distance_matrix <= bins[i]) - (self.distance_matrix <= bins[i-1])] = bins[i] #every entry that is <= bins[i] but without beeing <= bins[i-1] becomes bins[i]
+						#self.distance_matrix[(self.distance_matrix <= bins[i]) - (self.distance_matrix <= bins[i-1])] = bins[i] #every entry that is <= bins[i] but without beeing <= bins[i-1] becomes bins[i]
+						self.distance_matrix[int(np.subtract((self.distance_matrix <= bins[i]),(self.distance_matrix <= bins[i-1]),dtype=np.float32))] = bins[i] #every entry that is <= bins[i] but without beeing <= bins[i-1] becomes bins[i]
 
 			else:
 				self.distance_matrix = np.round(self.distance_matrix, round_it)
@@ -2118,8 +2126,13 @@ class Corelations(object):
 		
 		returns the average Corelation of the diagonal in self.correlations. If at_noise = None, at all noise_levels. Then return has dimension (noise_levels)
 		'''
-		if self.orig_vs_orig == None:
-			if self.patterns_1.shape[-1] == 1:
+		#if self.orig_vs_orig == None:
+		if not isinstance(self.orig_vs_orig, np.ndarray):
+			#if self.patterns_1.shape[-1] == 1:
+			if isinstance(self.distance_matrix, np.ndarray) and self.patterns_1.shape[-1].all() == 1:
+				self.calcCor()
+				self.orig_vs_orig = self.corelations[0]
+			if isinstance(self.distance_matrix, int) and self.patterns_1.shape[-1] == 1:
 				self.calcCor()
 				self.orig_vs_orig = self.corelations[0]
 			else:
@@ -2742,7 +2755,8 @@ class Corelations(object):
 	
 	#Misc
 	def getDistanceMatrix(self, locations, round_it = 'fix', bins = None): #returns matrix (loc, loc) with the distance of the two as entry 
-		if self.distance_matrix == None:
+		#if self.distance_matrix == None:
+		if not isinstance(self.distance_matrix, np.ndarray):
 			self.calcDistanceMatrix(locations, round_it = round_it, bins = bins)
 
 		return self.distance_matrix
@@ -3430,7 +3444,7 @@ class Spatial():
 		
 		#self.x_length = np.sqrt(self.patterns_1.shape[0])# number of pixel for one horizontol row in the enviroment
 		#self.locations = np.ravel((np.mgrid[0:self.x_length, 0:self.x_length] + 0.0)/self.x_length, order = 'F').reshape(self.patterns_1.shape[0], 2)# all locations in the enviroment
-		self.patterns_2d = self.patterns_1.reshape(self.y_length, self.x_length, self.patterns_1.shape[1])
+		self.patterns_2d = self.patterns_1.reshape(int(self.y_length), int(self.x_length), self.patterns_1.shape[1])
 		self.patterns_white = preprocessing.scale(self.patterns_1)
 	
 	def makeLocations(self, number_patterns): #help function
@@ -4085,7 +4099,7 @@ class Input(Corelations):
 		'''
 		if self.number_to_store > self.number_patterns:
 			print 'not enpugh input patterns'
-		if store_indizes == None:
+		if store_indizes.any() == None:
 			print 'make store indizes'
 			self.store_indizes = np.array(map(random.sample, [range(self.patterns.shape[1])]*self.n_e, [self.number_to_store]*self.n_e))
 		else:
@@ -4454,13 +4468,17 @@ class Grid(Input, Spatial):
 		self.spacing_given = 0
 		self.peak_given = 0
 		self.phase_given = 0
-		if spacings != None:
+		#if spacings != None:
+		if isinstance(spacings, np.ndarray):
 			self.spacing_given = True
-		if peak != None:
+		#if peak.any() != None:
+		if isinstance(peak, np.ndarray):
 			self.peak_given = True
-		if theta != None:
+		#if theta != None:
+		if isinstance(theta, np.ndarray):
 			self.theta_given = True
-		if phase != None:
+		#if phase != None:
+		if isinstance(phase, np.ndarray):
 			self.phase_given = True
 
 
@@ -5048,7 +5066,7 @@ class Lec(Input, Spatial): #Weakly spatially modullated cells
 
 	def makeActiveFilter(self):#method to create wsm cells. Here a rate map is created as described in the paper 'From grid cell to place cells with realistic field sizes'
 
-		patterns = np.random.uniform(0,1000, size = (self.n_e, self.cells, self.x_length, self.y_length))
+		patterns = np.random.uniform(0,1000, size = (self.n_e, self.cells, int(self.x_length), int(self.y_length)))
 		#patterns = self.actFunction(self, patterns).reshape(self.n_e, self.cells, self.x_length, self.y_length)
 		#patterns = np.random.randint(2, size = (self.n_e, self.cells, self.number_patterns))*1.
 		#size = np.random.normal(loc = self.size, scale = self.size/5., size = (self.n_e, self.cells))
@@ -5706,7 +5724,8 @@ class Solution():
 		
 		determines proportion pixel that fire inside the field wrong and outside.
 		'''
-		if activation ==None:
+		#if activation ==None:
+		if not isinstance(activation, np.ndarray):
 			activation = self.activation
 		[inside, outside] = self.getLocationsWithinDistance(distance = self.distance, locations = self.locations, location = self.location, bins = self.bins)
 		if self.Method == Solution.weightHebbian or Solution.takeWeightDistributed:
@@ -6469,7 +6488,8 @@ def SVCPaperOneMod(location = 'middle', distances = [0.35]):
 	
 	#loop over the differen place field radii, here only 35cm is computed
 	for d in distances:
-		data = np.zeros([len(grid_spacing), noise_points])
+		#data = np.zeros([len(grid_spacing), noise_points])
+		data = np.zeros([int(len(grid_spacing)), int(noise_points)])
 		for iteration in range(number_sims):
 			bins_av = np.array([d])
 			bins= bins_av
@@ -7434,7 +7454,7 @@ def hebbPaperStabilityErr(): #Lesions after learning
 
 
 ### Figure 1
-#MethodsPaper()
+MethodsPaper()
 
 ### Figure 2
 #problematic()
@@ -7449,10 +7469,10 @@ def hebbPaperStabilityErr(): #Lesions after learning
 #hebbPaperNew()
 
 ### Figure 6C,D,E
-hebbPaperLesionsErr()
+#hebbPaperLesionsErr()
 
 ### Figure7
-hebbPaperStabilityErr()
+#hebbPaperStabilityErr()
 
 
 end = time.time()-begin
